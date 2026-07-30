@@ -870,6 +870,27 @@ int main()
 	Test_EraseDestroysElement();
 	Test_ResizeConstructsElements();
 
+	for (size_t i = 0; i < 1000; i++)
+	{
+		Test_PushBack();
+		Test_PopBack();
+		Test_Swap();
+		Test_SwapPop();
+		Test_Resize();
+		Test_Reserve();
+		Test_Clear();
+
+		Test_ReserveKeepsData();
+
+		Test_CopyConstructor();
+		Test_MoveConstructor();
+		Test_CopyAssignment();
+		Test_MoveAssignment();
+
+		Test_EraseDestroysElement();
+		Test_ResizeConstructsElements();
+	}
+
 	std::cout << "============================\n";
 	std::cout << "Tests:  " << testsCount << "\n";
 	std::cout << "Passed: " << passedCount << "\n";
