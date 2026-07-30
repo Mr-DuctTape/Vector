@@ -1,0 +1,21 @@
+# Visual Studio
+.vs/
+x64/
+x86/
+Debug/
+Release/
+
+# Build output
+bin/
+obj/
+build/
+
+# User files
+*.user
+*.suo
+*.VC.db
+*.opendb
+
+# Temporary files
+*.tmp
+*.log
