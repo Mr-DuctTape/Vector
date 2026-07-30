@@ -278,4 +278,4 @@ public:
 			throw std::runtime_error("Invalid memory location");
 		return m_data[index];
 	}
-};
+}; 
