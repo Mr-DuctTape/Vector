@@ -9,23 +9,23 @@ private:
 	size_t m_size = 0;
 	size_t m_capacity = 0;
 
-	static void Destroy(T* buffer, size_t size) // Call destructor manually
+	static void Destroy(T* block, size_t size) // Call destructor manually
 	{
 		for (size_t i = 0; i < size; i++) {
-			std::destroy_at(&buffer[i]);
+			std::destroy_at(&block[i]);
 		}
 	}
 
-	static void DefaultConstruct(T* buffer, size_t start, size_t end)
+	static void DefaultConstruct(T* block, size_t start, size_t end) // Construcs objects from start -> end inside memory block
 	{
 		for (size_t i = start; i < end; i++)
-			std::construct_at(&buffer[i]);
+			std::construct_at(&block[i]);
 	}
 
-	static void Deallocate(T* buffer, size_t size) // Calls destructors and frees memory
+	static void Deallocate(T* block, size_t size) // Calls destructors and frees memory
 	{
-		Destroy(buffer, size);
-		free(buffer);
+		Destroy(block, size);
+		free(block);
 	}
 
 	static void RawAllocate(T** block, size_t size) // Allocates bytes no objects constructed
@@ -39,7 +39,7 @@ private:
 		DefaultConstruct(*block, 0, size);
 	}
 
-	void Reallocate(T** block, size_t size, size_t capacity) // Allocates new buffer, keeping old data
+	void Reallocate(T** block, size_t size, size_t capacity) // Allocates new memory block, keeping old data. If nullptr is passed default construction till size
 	{
 		if (*block == nullptr)
 		{
@@ -47,18 +47,18 @@ private:
 			return;
 		}
 
-		size_t oldSize = m_size;
 		T* oldData = *block;
 
 		RawAllocate(block, capacity);
 
 		size_t max = (m_size > size) ? size : m_size;
 
-		for (size_t i = 0; i < max; i++) // Copy over data
+		for (size_t i = 0; i < max; i++)
 		{
-			std::construct_at(&(*block)[i], std::move(oldData[i]));
+			std::construct_at(&(*block)[i], oldData[i]);
 		}
 
+		size_t oldSize = m_size;
 		Deallocate(oldData, oldSize);
 	}
 
@@ -157,6 +157,8 @@ public:
 
 	void swap(Vector<T>& other)
 	{
+		// Could maybe use std::swap here instead 
+
 		T* tempData = this->m_data;
 		this->m_data = other.m_data;
 		other.m_data = tempData;
@@ -229,7 +231,7 @@ public:
 	{
 		m_capacity = other.m_capacity;
 		m_size = other.m_size;
-		Reallocate(&m_data, m_size, m_capacity);
+		DefaultAllocate(&m_data, m_size, m_capacity);
 
 		for (size_t i = 0; i < m_size; i++)
 		{
@@ -254,11 +256,15 @@ public:
 
 	Vector<T>& operator= (const Vector<T>& other) // Copy assigment operator
 	{
-		Deallocate(m_data, m_size);
-		m_capacity = other.m_capacity;
-		m_size = other.m_size;
-		DefaultAllocate(&m_data, m_size, m_capacity);
+		if (this == &other)
+			return *this;
 
+		Deallocate(m_data, m_size);
+
+		m_size = other.m_size;
+		m_capacity = other.m_capacity;
+
+		DefaultAllocate(&m_data, m_size, m_capacity);
 		for (size_t i = 0; i < m_size; i++)
 		{
 			m_data[i] = other.m_data[i];

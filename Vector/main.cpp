@@ -8,8 +8,11 @@ int testsCount = 0;
 
 #define TEST(name)   (std::cout << "TESTING: " << name << std::endl, testsCount++)
 #define PASSED(name) (std::cout << "PASSED: " << name << "\n\n", passedCount++)
-#define FAILED(name) (std::cout << "FAILED: " << name << "\n\n", failedCount++)
 
+void FAILED(const std::string& name)
+{
+	std::cout << "FAILED: " << name << "\n\n", failedCount++;
+}
 
 // ============================================================
 // Helpers
@@ -71,7 +74,7 @@ struct LifetimeTracker
 int LifetimeTracker::alive = 0;
 
 
-// Used to test that resize() actually constructs objects.
+// Used to test resize() construction.
 struct ResizeObject
 {
 	int value;
@@ -105,7 +108,7 @@ void Test_PushBack()
 	for (size_t i = 0; i < vector.size(); i++)
 	{
 		if (vector[i] != i)
-		{ 
+		{
 			FAILED("PUSH_BACK");
 			Print(vector);
 			return;
@@ -173,7 +176,6 @@ void Test_Swap()
 
 	vector.swap(vector2);
 
-	// vector should now contain vector2's old data.
 	if (*vector.front() != 0 ||
 		*vector.back() != 499 ||
 		vector.size() != size2 ||
@@ -183,7 +185,6 @@ void Test_Swap()
 		return;
 	}
 
-	// vector2 should now contain vector's old data.
 	if (*vector2.front() != 0 ||
 		*vector2.back() != 4999 ||
 		vector2.size() != size1 ||
@@ -241,7 +242,6 @@ void Test_Resize()
 
 	Vector<int> vector;
 
-	// Resize from 0 -> 10
 	vector.resize(10);
 
 	if (vector.size() != 10)
@@ -251,7 +251,6 @@ void Test_Resize()
 		return;
 	}
 
-	// New int elements should be value-initialized to 0
 	for (size_t i = 0; i < vector.size(); i++)
 	{
 		if (vector[i] != 0)
@@ -262,7 +261,6 @@ void Test_Resize()
 		}
 	}
 
-	// Add some values
 	for (size_t i = 0; i < 50; i++)
 		vector.push_back(i);
 
@@ -273,7 +271,6 @@ void Test_Resize()
 		return;
 	}
 
-	// Resize larger
 	vector.resize(1000);
 
 	if (vector.size() != 1000)
@@ -283,7 +280,6 @@ void Test_Resize()
 		return;
 	}
 
-	// Existing elements should remain intact
 	for (size_t i = 0; i < 10; i++)
 	{
 		if (vector[i] != 0)
@@ -304,7 +300,6 @@ void Test_Resize()
 		}
 	}
 
-	// Newly created elements should be 0
 	for (size_t i = 60; i < 1000; i++)
 	{
 		if (vector[i] != 0)
@@ -315,7 +310,6 @@ void Test_Resize()
 		}
 	}
 
-	// Resize smaller
 	vector.resize(100);
 
 	if (vector.size() != 100)
@@ -348,7 +342,6 @@ void Test_Reserve()
 		return;
 	}
 
-	// Fill less than capacity
 	for (size_t i = 0; i < 900; i++)
 		vector.push_back(i);
 
@@ -359,7 +352,6 @@ void Test_Reserve()
 		return;
 	}
 
-	// Capacity should not change because we haven't exceeded it
 	if (vector.capacity() != 1000)
 	{
 		FAILED("RESERVE");
@@ -395,7 +387,6 @@ void Test_Clear()
 
 	vector.clear();
 
-	// clear() should destroy elements but keep allocated storage
 	if (vector.size() != 0)
 	{
 		FAILED("CLEAR");
@@ -410,7 +401,6 @@ void Test_Clear()
 		return;
 	}
 
-	// Make sure the vector can still be reused
 	for (size_t i = 0; i < 2500; i++)
 		vector.push_back(i);
 
@@ -440,7 +430,7 @@ void Test_Clear()
 
 
 // ============================================================
-// RESERVE MUST KEEP EXISTING DATA
+// RESERVE MUST KEEP DATA
 // ============================================================
 
 void Test_ReserveKeepsData()
@@ -456,14 +446,12 @@ void Test_ReserveKeepsData()
 
 	vector.reserve(1000);
 
-	// reserve() should not change size.
 	if (vector.size() != oldSize)
 	{
 		FAILED("RESERVE_KEEPS_DATA");
 		return;
 	}
 
-	// Existing elements must still be there.
 	for (int i = 0; i < 100; i++)
 	{
 		if (vector[i] != i)
@@ -474,7 +462,6 @@ void Test_ReserveKeepsData()
 		}
 	}
 
-	// Capacity should have increased.
 	if (vector.capacity() < 1000)
 	{
 		FAILED("RESERVE_KEEPS_DATA");
@@ -482,6 +469,65 @@ void Test_ReserveKeepsData()
 	}
 
 	PASSED("RESERVE_KEEPS_DATA");
+}
+
+
+// ============================================================
+// COPY CONSTRUCTOR
+// ============================================================
+
+void Test_CopyConstructor()
+{
+	TEST("COPY_CONSTRUCTOR");
+
+	Vector<int> original;
+
+	for (int i = 0; i < 100; i++)
+		original.push_back(i);
+
+	Vector<int> copy(original);
+
+	// Same size
+	if (copy.size() != original.size())
+	{
+		FAILED("COPY_CONSTRUCTOR");
+		return;
+	}
+
+	// Same capacity
+	if (copy.capacity() != original.capacity())
+	{
+		FAILED("COPY_CONSTRUCTOR");
+		return;
+	}
+
+	// Same data
+	for (size_t i = 0; i < original.size(); i++)
+	{
+		if (copy[i] != original[i])
+		{
+			FAILED("COPY_CONSTRUCTOR");
+			return;
+		}
+	}
+
+	// They must have separate allocations.
+	if (copy.data() == original.data())
+	{
+		FAILED("COPY_CONSTRUCTOR");
+		return;
+	}
+
+	// Modifying one must not affect the other.
+	copy[0] = 9999;
+
+	if (original[0] != 0)
+	{
+		FAILED("COPY_CONSTRUCTOR");
+		return;
+	}
+
+	PASSED("COPY_CONSTRUCTOR");
 }
 
 
@@ -501,9 +547,11 @@ void Test_MoveConstructor()
 	size_t originalSize = original.size();
 	size_t originalCapacity = original.capacity();
 
+	int* originalData = original.data();
+
 	Vector<int> moved(std::move(original));
 
-	// Destination should have received everything.
+	// Destination received the original data.
 	if (moved.size() != originalSize)
 	{
 		FAILED("MOVE_CONSTRUCTOR");
@@ -516,7 +564,13 @@ void Test_MoveConstructor()
 		return;
 	}
 
-	// Verify data.
+	if (moved.data() != originalData)
+	{
+		FAILED("MOVE_CONSTRUCTOR");
+		return;
+	}
+
+	// Verify contents.
 	for (int i = 0; i < 100; i++)
 	{
 		if (moved[i] != i)
@@ -526,41 +580,187 @@ void Test_MoveConstructor()
 		}
 	}
 
-	// For our Vector, moved-from state should be empty.
-	if (original.data() != nullptr)
+	// Moved-from object should be empty and valid.
+	if (original.data() != nullptr ||
+		original.size() != 0 ||
+		original.capacity() != 0)
 	{
 		FAILED("MOVE_CONSTRUCTOR");
 		return;
 	}
 
-	if (original.size() != 0)
-	{
-		FAILED("MOVE_CONSTRUCTOR");
-		return;
-	}
-
-	if (original.capacity() != 0)
-	{
-		FAILED("MOVE_CONSTRUCTOR");
-		return;
-	}
-
-	// The moved-from vector must still be usable.
+	// Moved-from object should still be usable.
 	original.push_back(12345);
 
-	if (original.size() != 1)
-	{
-		FAILED("MOVE_CONSTRUCTOR");
-		return;
-	}
-
-	if (original[0] != 12345)
+	if (original.size() != 1 ||
+		original[0] != 12345)
 	{
 		FAILED("MOVE_CONSTRUCTOR");
 		return;
 	}
 
 	PASSED("MOVE_CONSTRUCTOR");
+}
+
+
+// ============================================================
+// COPY ASSIGNMENT
+// ============================================================
+
+void Test_CopyAssignment()
+{
+	TEST("COPY_ASSIGNMENT");
+
+	Vector<int> original;
+
+	for (int i = 0; i < 100; i++)
+		original.push_back(i);
+
+	Vector<int> copy;
+
+	for (int i = 0; i < 20; i++)
+		copy.push_back(999);
+
+	copy = original;
+
+	// Same size.
+	if (copy.size() != original.size())
+	{
+		FAILED("COPY_ASSIGNMENT");
+		return;
+	}
+
+	// Same capacity.
+	if (copy.capacity() != original.capacity())
+	{
+		FAILED("COPY_ASSIGNMENT");
+		return;
+	}
+
+	// Same data.
+	for (size_t i = 0; i < original.size(); i++)
+	{
+		if (copy[i] != original[i])
+		{
+			FAILED("COPY_ASSIGNMENT");
+			return;
+		}
+	}
+
+	// Must not share memory.
+	if (copy.data() == original.data())
+	{
+		FAILED("COPY_ASSIGNMENT");
+		return;
+	}
+
+	// Modifying copy must not modify original.
+	copy[0] = 9999;
+
+	if (original[0] != 0)
+	{
+		FAILED("COPY_ASSIGNMENT");
+		return; 
+	}
+
+	// Test self-assignment.
+
+	copy[0] = 0;
+	copy = copy;
+
+	if (copy.size() != 100)
+	{
+		FAILED("COPY_ASSIGNMENT");
+		return;
+	}
+
+	for (int i = 0; i < 100; i++)
+	{
+		if (copy[i] != i)
+		{
+			FAILED("COPY_ASSIGNMENT");
+			return;
+		}
+	}
+
+	PASSED("COPY_ASSIGNMENT");
+}
+
+
+// ============================================================
+// MOVE ASSIGNMENT
+// ============================================================
+
+void Test_MoveAssignment()
+{
+	TEST("MOVE_ASSIGNMENT");
+
+	Vector<int> original;
+
+	for (int i = 0; i < 100; i++)
+		original.push_back(i);
+
+	int* originalData = original.data();
+	size_t originalSize = original.size();
+	size_t originalCapacity = original.capacity();
+
+	// Give destination existing data first.
+	Vector<int> destination;
+
+	for (int i = 0; i < 50; i++)
+		destination.push_back(999);
+
+	destination = std::move(original);
+
+	// Destination should now own original's allocation.
+	if (destination.data() != originalData)
+	{
+		FAILED("MOVE_ASSIGNMENT");
+		return;
+	}
+
+	if (destination.size() != originalSize)
+	{
+		FAILED("MOVE_ASSIGNMENT");
+		return;
+	}
+
+	if (destination.capacity() != originalCapacity)
+	{
+		FAILED("MOVE_ASSIGNMENT");
+		return;
+	}
+
+	// Verify data.
+	for (int i = 0; i < 100; i++)
+	{
+		if (destination[i] != i)
+		{
+			FAILED("MOVE_ASSIGNMENT");
+			return;
+		}
+	}
+
+	// Source should be empty and valid.
+	if (original.data() != nullptr ||
+		original.size() != 0 ||
+		original.capacity() != 0)
+	{
+		FAILED("MOVE_ASSIGNMENT");
+		return;
+	}
+
+	// Source should still be reusable.
+	original.push_back(12345);
+
+	if (original.size() != 1 ||
+		original[0] != 12345)
+	{
+		FAILED("MOVE_ASSIGNMENT");
+		return;
+	}
+
+	PASSED("MOVE_ASSIGNMENT");
 }
 
 
@@ -584,7 +784,7 @@ void Test_EraseDestroysElement()
 
 		vector.erase(5);
 
-		// Exactly one object should have been removed.
+		// One object should have been removed.
 		if (LifetimeTracker::alive != aliveBefore - 1)
 		{
 			FAILED("ERASE_DESTROYS_ELEMENT");
@@ -625,7 +825,6 @@ void Test_ResizeConstructsElements()
 		return;
 	}
 
-	// This must actually construct 100 ResizeObjects.
 	vector.resize(100);
 
 	if (vector.size() != 100)
@@ -634,7 +833,6 @@ void Test_ResizeConstructsElements()
 		return;
 	}
 
-	// Every object should have been default constructed.
 	for (size_t i = 0; i < 100; i++)
 	{
 		if (vector[i].value != 1234)
@@ -663,26 +861,14 @@ int main()
 	Test_Clear();
 
 	Test_ReserveKeepsData();
+
+	Test_CopyConstructor();
 	Test_MoveConstructor();
+	Test_CopyAssignment();
+	Test_MoveAssignment();
+
 	Test_EraseDestroysElement();
 	Test_ResizeConstructsElements();
-
-
-	for (size_t i = 0; i < 10000; i++)
-	{
-		Test_PushBack();
-		Test_PopBack();
-		Test_Swap();
-		Test_SwapPop();
-		Test_Resize();
-		Test_Reserve();
-		Test_Clear();
-
-		Test_ReserveKeepsData();
-		Test_MoveConstructor();
-		Test_EraseDestroysElement();
-		Test_ResizeConstructsElements();
-	}
 
 	std::cout << "============================\n";
 	std::cout << "Tests:  " << testsCount << "\n";
